@@ -3,43 +3,16 @@ import Layout from "./components/Layout";
 import NoteForm from "./components/NoteForm";
 import NoteList from "./components/NoteList";
 import { Note, NoteFormData } from "./types/note";
+import { useNotes, useNoteMutation, useDeleteNote } from "./hooks/useNotes";
 
 function App() {
-  const [notes, setNotes] = useState<Note[]>([]);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
 
-  const handleCreateNote = (noteData: NoteFormData) => {
-    const newNote: Note = {
-      id: Date.now().toString(),
-      title: noteData.title,
-      content: noteData.content,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setNotes([newNote, ...notes]);
-    setShowForm(false);
-    setEditingNote(null);
-  };
-
-  const handleUpdateNote = (noteData: NoteFormData) => {
-    if (!noteData.id) return;
-    
-    setNotes(
-      notes.map((note) =>
-        note.id === noteData.id
-          ? { 
-              ...note, 
-              title: noteData.title,
-              content: noteData.content,
-              updatedAt: new Date().toISOString() 
-            }
-          : note
-      )
-    );
-    setEditingNote(null);
-    setShowForm(false);
-  };
+  // React Query hooks
+  const { data: notes = [], isLoading, error } = useNotes();
+  const noteMutation = useNoteMutation();
+  const deleteNoteMutation = useDeleteNote();
 
   const handleEdit = (note: Note) => {
     setEditingNote(note);
@@ -48,20 +21,28 @@ function App() {
 
   const handleDelete = (noteId: string) => {
     if (window.confirm("Are you sure you want to delete this note?")) {
-      setNotes(notes.filter((note) => note.id !== noteId));
-      if (editingNote?.id === noteId) {
-        setEditingNote(null);
-        setShowForm(false);
-      }
+      deleteNoteMutation.mutate(noteId, {
+        onSuccess: () => {
+          if (editingNote?.id === noteId) {
+            setEditingNote(null);
+            setShowForm(false);
+          }
+        },
+      });
     }
   };
 
   const handleFormSubmit = (noteData: NoteFormData) => {
-    if (editingNote) {
-      handleUpdateNote(noteData);
-    } else {
-      handleCreateNote(noteData);
-    }
+    noteMutation
+      .mutateAsync(noteData)
+      .then(() => {
+        setShowForm(false);
+        setEditingNote(null);
+      })
+      .catch((error: Error) => {
+        console.error("Failed to save note:", error);
+        alert("Failed to save note. Please try again.");
+      });
   };
 
   const handleFormCancel = () => {
@@ -94,11 +75,16 @@ function App() {
           </div>
         )}
 
-        <NoteList notes={notes} onEdit={handleEdit} onDelete={handleDelete} />
+        <NoteList
+          notes={notes}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          isLoading={isLoading}
+          error={error?.message || null}
+        />
       </div>
     </Layout>
   );
 }
 
 export default App;
-
