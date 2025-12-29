@@ -1,0 +1,33 @@
+# SAM
+.aws-sam/
+samconfig.toml.bak
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Build artifacts
+*.zip
+*.jar
+*.war
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+

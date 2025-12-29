@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Notes App - Serverless backend with API Gateway, Lambda, and DynamoDB
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Environment:
+      Variables:
+        NOTES_TABLE_NAME: !Ref NotesTable
+
+Resources:
+  # DynamoDB Table
+  NotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Notes
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+
+  # API Gateway REST API
+  NotesApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+  # Lambda Functions
+  CreateNoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CreateNote
+      CodeUri: functions/createNote/
+      Handler: index.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+      Events:
+        CreateNoteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref NotesApi
+            Path: /notes
+            Method: post
+
+  GetNoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GetNote
+      CodeUri: functions/getNote/
+      Handler: index.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref NotesTable
+      Events:
+        GetNoteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref NotesApi
+            Path: /notes/{id}
+            Method: get
+
+  ListNotesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ListNotes
+      CodeUri: functions/listNotes/
+      Handler: index.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref NotesTable
+      Events:
+        ListNotesApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref NotesApi
+            Path: /notes
+            Method: get
+
+  UpdateNoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: UpdateNote
+      CodeUri: functions/updateNote/
+      Handler: index.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+      Events:
+        UpdateNoteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref NotesApi
+            Path: /notes/{id}
+            Method: put
+
+  DeleteNoteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: DeleteNote
+      CodeUri: functions/deleteNote/
+      Handler: index.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+      Events:
+        DeleteNoteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref NotesApi
+            Path: /notes/{id}
+            Method: delete
+
+Outputs:
+  NotesApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${NotesApi}.execute-api.${AWS::Region}.amazonaws.com/prod/
+    Export:
+      Name: NotesApiUrl
+
+  NotesTableName:
+    Description: DynamoDB Table Name
+    Value: !Ref NotesTable
+    Export:
+      Name: NotesTableName
+
