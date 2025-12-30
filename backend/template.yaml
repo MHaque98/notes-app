@@ -13,6 +13,16 @@ Globals:
 
 Resources:
   # DynamoDB Table
+  # Schema Design:
+  # - Partition Key: id (String) - Unique identifier for each note
+  # - Attributes (stored as items, DynamoDB is schemaless):
+  #   * title (String) - Note title
+  #   * content (String) - Note content/body
+  #   * createdAt (String) - ISO 8601 timestamp when note was created
+  #   * updatedAt (String) - ISO 8601 timestamp when note was last updated
+  # - Global Secondary Index: CreatedAtIndex
+  #   * Partition Key: createdAt (String) - For querying notes by date
+  #   * Sort Key: id (String) - Ensures uniqueness and allows sorting
   NotesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -21,11 +31,27 @@ Resources:
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
       KeySchema:
         - AttributeName: id
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: CreatedAtIndex
+          KeySchema:
+            - AttributeName: createdAt
+              KeyType: HASH
+            - AttributeName: id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Application
+          Value: NotesApp
+        - Key: Environment
+          Value: !Ref AWS::StackName
 
   # API Gateway REST API
   NotesApi:
@@ -40,10 +66,12 @@ Resources:
   # Lambda Functions
   CreateNoteFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
     Properties:
       FunctionName: CreateNote
-      CodeUri: functions/createNote/
-      Handler: index.handler
+      CodeUri: .
+      Handler: functions/createNote/index.handler
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref NotesTable
@@ -57,10 +85,12 @@ Resources:
 
   GetNoteFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
     Properties:
       FunctionName: GetNote
-      CodeUri: functions/getNote/
-      Handler: index.handler
+      CodeUri: .
+      Handler: functions/getNote/index.handler
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref NotesTable
@@ -74,10 +104,12 @@ Resources:
 
   ListNotesFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
     Properties:
       FunctionName: ListNotes
-      CodeUri: functions/listNotes/
-      Handler: index.handler
+      CodeUri: .
+      Handler: functions/listNotes/index.handler
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref NotesTable
@@ -91,10 +123,12 @@ Resources:
 
   UpdateNoteFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
     Properties:
       FunctionName: UpdateNote
-      CodeUri: functions/updateNote/
-      Handler: index.handler
+      CodeUri: .
+      Handler: functions/updateNote/index.handler
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref NotesTable
@@ -108,10 +142,12 @@ Resources:
 
   DeleteNoteFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: makefile
     Properties:
       FunctionName: DeleteNote
-      CodeUri: functions/deleteNote/
-      Handler: index.handler
+      CodeUri: .
+      Handler: functions/deleteNote/index.handler
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref NotesTable
