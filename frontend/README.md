@@ -42,12 +42,41 @@ If you want to develop without the backend, MSW is configured to mock API respon
 You can configure the API endpoint using environment variables:
 
 - `VITE_API_URL`: Override the API base URL (defaults to `/api` which uses the Vite proxy)
+- `VITE_ENABLE_MSW`: Set to `"true"` to enable MSW mocks instead of real API calls
 
-Example `.env.local`:
+#### Environment Files
+
+The project uses different environment files for different scenarios:
+
+**`.env.local`** (gitignored, for local development):
 ```bash
-# Use direct connection to SAM Local (bypassing Vite proxy)
-VITE_API_URL=http://localhost:3000
+# Use Vite proxy to local SAM backend (default)
+# VITE_API_URL=/api
+
+# Or enable MSW for mock data
+# VITE_ENABLE_MSW=true
 ```
+
+**`.env.production`** (used when building for production):
+```bash
+VITE_API_URL=<your-production-api-gateway-url>
+VITE_ENABLE_MSW=false
+```
+
+**Development Modes:**
+
+1. **Local with SAM Backend** (default):
+   - Don't set `VITE_API_URL` or set it to `/api`
+   - Vite proxy forwards `/api/*` to `http://localhost:3000`
+   - Make sure SAM Local is running on port 3000
+
+2. **Local with MSW Mocks**:
+   - Set `VITE_ENABLE_MSW=true` in `.env.local`
+   - No backend needed, uses mock data
+
+3. **Production Build**:
+   - Uses `.env.production` automatically
+   - Points to production API Gateway endpoint
 
 ## Build
 
