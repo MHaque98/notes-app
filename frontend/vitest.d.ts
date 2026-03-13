@@ -2,9 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import type { TestingLibraryMatchers } from "@testing-library/jest-dom/matchers";
 
 declare module "vitest" {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  interface Assertion<T = any> extends TestingLibraryMatchers<T, void> {}
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  interface Assertion<T = unknown> extends TestingLibraryMatchers<T, void> {}
   interface AsymmetricMatchersContaining
-    extends TestingLibraryMatchers<any, void> {}
+    extends TestingLibraryMatchers<unknown, void> {}
 }
